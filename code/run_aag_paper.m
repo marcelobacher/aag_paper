@@ -166,15 +166,15 @@ for r = 1:nRep
         end
         [Mass, ~] = IsolationEstimation([xTestRep; xAnomalyRep], iTree);
         Score = mean(Mass, 2);
-        labels = boolean([ones(nTest,1); zeros(nAnomaly,1)]);
-        auc(k) = scoreAUC(labels, Score);
-        index_cut = max(1, floor(alpha*length(labels)));
+        auclabels = boolean([ones(nTest,1); zeros(nAnomaly,1)]);
+        auc(k) = scoreAUC(auclabels, Score);
+        index_cut = max(1, floor(alpha*length(auclabels)));
         [score_sorted, ~] = sort(Score,'ascend');
         score_cut = score_sorted(index_cut);
         yhat = double(Score >= score_cut);
-        tp = sum((yhat == 0) & (labels == 0));
-        fp = sum((yhat == 0) & (labels == 1));
-        fn = sum((yhat == 1) & (labels == 0));
+        tp = sum((yhat == 0) & (auclabels == 0));
+        fp = sum((yhat == 0) & (auclabels == 1));
+        fn = sum((yhat == 1) & (auclabels == 0));
 % %         tn = sum((yhat == 1) & (labels == 1));
         f1(k) = 2 * tp / (2 * tp + fp + fn);
       end
@@ -286,11 +286,11 @@ for r = 1:nRep
     fprintf('##### Recording performance...\n');
     performance{m}.results(r).f1 = f1;
     performance{m}.results(r).auc = auc;
-    performance{i}.results(r).train = i_train;
-    performance{i}.results(r).val = i_val;
-    performance{i}.results(r).test = i_test;
-    performance{i}.results(r).anomaly = i_anomaly;
+    performance{m}.results(r).train = i_train;
+    performance{m}.results(r).test = i_test;
+    performance{m}.results(r).anomaly = i_anomaly;
     if ~strcmpi(methods{m}, 'iforest')
+      performance{m}.results(r).val = i_val;
       performance{m}.results(r).mvmodel = mvset_model;
       performance{m}.results(r).pca = model_pca;
       performance{m}.results(r).subspaces = G;
