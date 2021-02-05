@@ -47,7 +47,7 @@ if P > 2
     condMutualInformation(X(:,1), X(:,2), X(:,3));  
   % Rd = H(X1|X2,X3) + H(X2|X1,X3) + H(X3|X2,X1) + MI(X1 X2 X3)
   rd = a(3) + b(3) + c(3) + w*d;
-%  rd = rd / sum(abs(c));
+  rd = rd / sum(abs(c));
 elseif P == 2
   % we make it evident how to compute the Rokhlin distace
   % a <- [H(X2) H(X1|X2)]
@@ -56,7 +56,7 @@ elseif P == 2
   b = mvJointEntropy([X(:,1) X(:,2)]);
   % Rd = H(X1|X2) + H(X2|X1)
   rd = a(2) + b(2);
-%  rd =  rd / sum(abs(a));
+  rd =  rd / sum(abs(a));
 else
   error('ERROR! X is a vector ...');
 end
