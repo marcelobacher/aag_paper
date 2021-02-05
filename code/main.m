@@ -158,7 +158,8 @@ for i=1:nFiles
       day = num2str(ymdxxx(3));
     end
     targetfile = [resultspath sprintf('%d%s%s_results_%s', ...
-      ymdxxx(1), month, day, dataset_file{i})];    fprintf('### Recording file: %s...\n', targetfile);
+      ymdxxx(1), month, day, dataset_file{i})];    
+    fprintf('### Recording file: %s...\n', targetfile);
     save(targetfile, 'performance');
   catch e
     disp(e)
