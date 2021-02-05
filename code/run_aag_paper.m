@@ -121,7 +121,7 @@ for r = 1:nRep
       fprintf('##### Discretizing attributes ...\n');
       [xTrain_d, ~] = discretize_data(xTrainRep);
       fprintf('##### Performing subspace analysis with AAG ...\n');
-      [T, ~] = maag4(xTrain_d, [], 0, 0, 0, 1, 1, 1);
+      [T, ~] = maag4(xTrain_d, [], 0, 0, 0, 1, 1, 0);
       % clean up identical groups for anomaly detection ensemble
       G = cleanup_groups(T);
 
