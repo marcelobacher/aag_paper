@@ -1,4 +1,4 @@
-function performance = run_aag_paper(data, labels, benchmarks, alpha, ...
+function performance = run_aag_paper(data, labels, methods, alpha, ...
   add_noise, noise_factors, nRep, nRepVal)
 
 % set default random generator
@@ -16,24 +16,24 @@ xTrain = data(targetClass == labels,:);
 xAnomaly = data(targetClass ~= labels,:);
 yAnomaly = labels(labels ~= targetClass);
 prop_anomaly = size(xAnomaly,1) / size(xTrain,1);
-if prop_anomaly > 0.20
-  idx = find(labels ~= targetClass);
-  [~, ~, xAnomaly, ~, ~, i_anomaly] = splitTrainingData(xAnomaly, yAnomaly, .95);
-  i_anomaly = idx(i_anomaly);
-else
-  i_anomaly = find(labels ~= targetClass);
-end
+% % if prop_anomaly > 0.20
+% %   idx = find(labels ~= targetClass);
+% %   [~, ~, xAnomaly, ~, ~, i_anomaly] = splitTrainingData(xAnomaly, yAnomaly, .95);
+% %   i_anomaly = idx(i_anomaly);
+% % else
+% %   i_anomaly = find(labels ~= targetClass);
+% % end
 [nTrain, P] = size(xTrain);
 % it improves the performance for anomaly detection approach
 xTrain = xTrain .* (1 + 0.1*rand(nTrain, P));
 
 %% main loop
-performance = cell(length(benchmarks),1);
+performance = cell(length(methods),1);
 perf_struct = struct('f1', 0, ...
   'auc', 0, 'mvmodel', [], 'pca', [], 'subspaces', [], ...
   'subspaces_weights', [], 'w', [], ...
   'train', [], 'val', [], 'test', [], 'anomaly', []);
-for i=1:length(benchmarks)
+for i=1:length(methods)
   performance{i}.method = '';
   performance{i}.noise = add_noise;
   performance{i}.target = targetClass;
@@ -41,37 +41,50 @@ for i=1:length(benchmarks)
   performance{i}.results = repmat(perf_struct, nRep, 1);
 end
 
+% impute missing values
+xTrain = impute_mean(xTrain);
+mData = mean(xTrain);
+
 fprintf('### Starting main loop....\n');
 for r = 1:nRep
   fprintf('##### Starting repetition %d / %d....\n', r, nRep);
-  % impute missing values
-  xTrain = impute_mean(xTrain);
-  mData = mean(xTrain);
+  
+  % select anomalies
+  if prop_anomaly > 0.20
+    idx = find(labels ~= targetClass);
+    [~, ~, xAnomalyRep, ~, ~, i_anomaly] = splitTrainingData(xAnomaly, yAnomaly, .95);
+    i_anomaly = idx(i_anomaly);
+  else
+    i_anomaly = find(labels ~= targetClass);
+  end
+  
   % if data is too big, take coreset  
   if nTrain > 2000
     fprintf('##### Reducing data with coreset computation....\n');
     idx = get_index_coreset(xTrain, 0.95, 100, 50);
     idx_diff = setdiff((1:nTrain)', idx);
     xTestAppend = xTrain(idx_diff,:);
-    xTrain = xTrain(idx,:);
+    xTrainRep = xTrain(idx,:);
     i_train = idx;
+    nTrain = size(xTrainRep,1);
   else
     xTestAppend = [];
+    nTrain = size(xTrain,1);
   end
-  nTrain = size(xTrain,1);
+  
   % split of train, validation and test data sets
   if isempty(xTestAppend)
     % test dataset for ensemble of anomaly detection
     selection = zeros(nTrain,1);
     selection(randsample(nTrain, round(.7*nTrain))) = 1;
-    xTest = xTrain(selection == 0, :);
-    xTrain = xTrain(selection > 0, :);
-    nTrain = size(xTrain,1);
+    xTestRep = xTrain(selection == 0, :);
+    xTrainRep = xTrain(selection > 0, :);
+    nTrain = size(xTrainRep,1);
     % record indices of selected data
     i_train = find(selection > 0);
     i_test = find(selection == 0);
   else
-    xTest = xTestAppend;  
+    xTestRep = xTestAppend;  
     i_test = idx_diff;
   end
   
@@ -79,65 +92,64 @@ for r = 1:nRep
   nRepVal = max(1,double((nTrain > 200) * nRepVal));
   
   % remove nonvalid attributes
-  valid_att = std(xTrain, 1) > 1e-4;
-  xTrain = xTrain(:, valid_att);
-  xTest = xTest(:, valid_att);
+  valid_att = std(xTrainRep, 1) > 1e-4;
+  xTrainRep = xTrainRep(:, valid_att);
+  xTestRep = xTestRep(:, valid_att);
   
   % imputation of missing values using only training data
-  xTest = impute_mean(xTest, mData);
-  nTest = size(xTest, 1);
-  nTrain = size(xTrain, 1);
+  xTestRep = impute_mean(xTestRep, mData(valid_att));
+  nTest = size(xTestRep, 1);
   
   % noise addition test
   if add_noise == 1
     n_noise = round(.5*nTest);
     selection_noise = randsample(nTest, n_noise);
-    xAnomaly = xTest(selection_noise,:);
-    xAnomaly_orig = xTest(selection_noise,:);
+    xAnomalyRep = xTestRep(selection_noise,:);
+    xAnomaly_orig = xTestRep(selection_noise,:);
     xAnomaly_orig = impute_mean(xAnomaly_orig, mData);
   else
-    xAnomaly = xAnomaly(:, valid_att);
-    xAnomaly = impute_mean(xAnomaly, mData);
+    xAnomalyRep = xAnomalyRep(:, valid_att);
+    xAnomalyRep = impute_mean(xAnomalyRep, mData(valid_att));
   end
-  nAnomaly = size(xAnomaly,1);
+  nAnomaly = size(xAnomalyRep,1);
     
   % selection of subspaces
-  for m = 1:length(benchmarks)
-    fprintf('##### Running method: %s....\n', benchmarks{m});
-    performance{m}.method = benchmarks{m};
-    if strcmpi(benchmarks{m}, 'aag')
+  for m = 1:length(methods)
+    fprintf('##### Running method: %s....\n', methods{m});
+    performance{m}.method = methods{m};
+    if strcmpi(methods{m}, 'aag')
       fprintf('##### Discretizing attributes ...\n');
-      [xTrain_d, ~] = discretize_data(xTrain);
+      [xTrain_d, ~] = discretize_data(xTrainRep);
       fprintf('##### Performing subspace analysis with AAG ...\n');
-      [T, ~] = maag4(xTrain_d, [], 0, 0, 0, 1, 1, 0);
+      [T, ~] = maag4(xTrain_d, [], 0, 0, 0, 1, 1, 1);
       % clean up identical groups for anomaly detection ensemble
       G = cleanup_groups(T);
 
-    elseif strcmpi(benchmarks{m}, 'fb')
-      G = fb_subspace(xTrain);
+    elseif strcmpi(methods{m}, 'fb')
+      G = fb_subspace(xTrainRep);
       
-    elseif strcmpi(benchmarks{m}, 'enclus')
+    elseif strcmpi(methods{m}, 'enclus')
       fprintf('##### Discretizing attributes ...\n');
-      [xTrain_d, ~] = discretize_data(xTrain);
+      [xTrain_d, ~] = discretize_data(xTrainRep);
       f_enclus1 = 0.5;
       f_enclus2 = 1.5;
       fprintf('##### Performing subspace analysis with ENCLUS ...\n');
       G = enclus_subspaces(xTrain_d, f_enclus1, f_enclus2);
       
-    elseif strcmpi(benchmarks{m}, 'ewkm')
+    elseif strcmpi(methods{m}, 'ewkm')
       fprintf('##### Performing subspace analysis with EWKM ...\n');
-      G = ewkm_subspace(xTrain);
+      G = ewkm_subspace(xTrainRep);
       
-    elseif strcmpi(benchmarks{m}, 'afg')
+    elseif strcmpi(methods{m}, 'afg')
       fprintf('##### Performing subspace analysis with AFG-kMeans ...\n');
-      G = afg_k_means_subspace(xTrain);
+      G = afg_k_means_subspace(xTrainRep);
       
-    elseif strcmpi(benchmarks{m}, 'iforest')
+    elseif strcmpi(methods{m}, 'iforest')
       fprintf('##### Performing subspace analysis with iForest ...\n');
       NumTree = 100; % number of isolation trees
       NumSub = max(20, min(floor(nTrain/4),max(256, nTrain))); % subsample size
-      NumDim = size(xTrain, 2); % do not perform dimension sampling
-      iTree = IsolationForest(xTrain, NumTree, NumSub, NumDim, ...
+      NumDim = size(xTrainRep, 2); % do not perform dimension sampling
+      iTree = IsolationForest(xTrainRep, NumTree, NumSub, NumDim, ...
         randi(10000));
       auc = zeros(1,n_noise_factor);
       f1 = zeros(1, n_noise_factor);
@@ -148,11 +160,11 @@ for r = 1:nRep
           fprintf('##### Noise corruption setting on %d attributes...\n', dim);
           noise_std = std(xAnomaly_orig(:,dim));
           
-          xAnomaly(:, dim) = bsxfun(@plus, xAnomaly_orig(:,dim), ...
+          xAnomalyRep(:, dim) = bsxfun(@plus, xAnomaly_orig(:,dim), ...
             bsxfun(@times, noise_std, mvnrnd(zeros(length(dim),1), ...
             eye(length(dim)), n_noise)));
         end
-        [Mass, ~] = IsolationEstimation([xTest; xAnomaly], iTree);
+        [Mass, ~] = IsolationEstimation([xTestRep; xAnomalyRep], iTree);
         Score = mean(Mass, 2);
         labels = boolean([ones(nTest,1); zeros(nAnomaly,1)]);
         auc(k) = scoreAUC(labels, Score);
@@ -167,11 +179,11 @@ for r = 1:nRep
         f1(k) = 2 * tp / (2 * tp + fp + fn);
       end
     else
-      error([benchmarks{m} ' not implemented!!']);
+      error('ERROR!!! %s not implemented!!', methods{m});
     end
     
     % build anomaly detection models for ensemble
-    if ~strcmpi(benchmarks{m}, 'iforest')
+    if ~strcmpi(methods{m}, 'iforest')
       subspace_weights = [];
       yhat = [];
       mvset_model = cell(1,1);
@@ -188,20 +200,20 @@ for r = 1:nRep
           if nTrain > 200
             selVal = zeros(nTrain,1);
             selVal(randsample(nTrain, round(.3*nTrain))) = 1;
-            xTrainAn = xTrain(selVal == 0,:);
-            xVal = xTrain(selVal>0,:);
+            xTrainAn = xTrainRep(selVal == 0,:);
+            xVal = xTrainRep(selVal>0,:);
             nVal = size(xVal,1);
             % record indices of selected data
             i_val = find(selVal > 0);
           else
-            xTrainAn = xTrain;
-            xVal = xTrain;
+            xTrainAn = xTrainRep;
+            xVal = xTrainRep;
             nVal = nTrain;
             i_val = (1:nVal)';
           end
           [i_result, ~, ~, model_pca{g}, mvset_model{g}, ...
             ~, ~] = find_mv_set(xTrainAn(:,fs), ...
-            [xVal(:,fs); xTest(:,fs); xAnomaly(:,fs)], 0.9, alpha);
+            [xVal(:,fs); xTestRep(:,fs); xAnomalyRep(:,fs)], 0.9, alpha);
           if ~isempty(mvset_model{g})
             result = [result i_result];
           end
@@ -212,7 +224,7 @@ for r = 1:nRep
         result = double((sum(result,2) / nRepVal) > 0.5);
         % retrain using the whole traininig data
         [~, ~, ~, model_pca{g}, mvset_model{g}, ~, ~] = ...
-          find_mv_set(xTrain(:,fs), xAnomaly(:,fs), 0.9, alpha);
+          find_mv_set(xTrainRep(:,fs), xAnomalyRep(:,fs), 0.9, alpha);
         if isempty(mvset_model{g})
           warning('MV-set model could not be computed!');
         else
@@ -225,14 +237,15 @@ for r = 1:nRep
       
       % if noise setting is used, then we just use the trained models and
       % apply them to the corrupted data. If other settings are used, then
-      % we also apply the trained model to compute the performances
+      % we also apply the trained model to compute the performances nut
+      % only once.
       for k=1:n_noise_factor
         if add_noise == 1
           dim = randsample(P, min(P, round(noise_factors(k)*P+1)));
           fprintf('##### Noise corruption setting on %d attributes...\n', dim);
           noise_std = std(xAnomaly_orig(:,dim));
           
-          xAnomaly(:, dim) = bsxfun(@plus, xAnomaly_orig(:,dim), ...
+          xAnomalyRep(:, dim) = bsxfun(@plus, xAnomaly_orig(:,dim), ...
             bsxfun(@times, noise_std, mvnrnd(zeros(length(dim),1), ...
             eye(length(dim)), n_noise)));
           
@@ -240,7 +253,7 @@ for r = 1:nRep
           for g=1:length(G)
             fs = G{g};
             if ~isempty(mvset_model{g})
-              x = [xTrain(:,fs); xTest(:,fs); xAnomaly(:,fs)];
+              x = [xTrain(:,fs); xTestRep(:,fs); xAnomalyRep(:,fs)];
               x = bsxfun(@minus, x, mData(fs));
               x_train = bsxfun(@minus, xTrain(:,fs), ...
                 mData(fs));
@@ -277,7 +290,7 @@ for r = 1:nRep
     performance{i}.results(r).val = i_val;
     performance{i}.results(r).test = i_test;
     performance{i}.results(r).anomaly = i_anomaly;
-    if ~strcmpi(benchmarks{m}, 'iforest')
+    if ~strcmpi(methods{m}, 'iforest')
       performance{m}.results(r).mvmodel = mvset_model;
       performance{m}.results(r).pca = model_pca;
       performance{m}.results(r).subspaces = G;
