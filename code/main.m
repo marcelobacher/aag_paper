@@ -5,15 +5,14 @@ addpath(genpath('./afg_km'));
 addpath(genpath('./ewkm'));
 addpath(genpath('./enclus'));
 addpath(genpath('./iforest'));
-nRep = 2;
+nRep = 20;
 nRepVal = 10;
 alpha = 0.05;
 % flag to add noise (1st setting)
 add_noise = 0;
 noise_factors = [.01 .03 .05 .07 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0];
 % benchmarks
-% benchmarks = {'aag'; 'fb'; 'enclus'; 'ewkm'; 'afg'; 'iforest'};
-benchmarks = {'fb'; 'iforest'};
+benchmarks = {'aag'; 'fb'; 'enclus'; 'ewkm'; 'afg'; 'iforest'};
 % datasets
 datapath = '../data/';
 resultspath = '../results/';
@@ -130,7 +129,7 @@ dataset_file = {...
 'sonar_odds.mat';...
 'diabetic_odds.mat';...
 };
-nFiles = 5; %length(dataset_file);
+nFiles = length(dataset_file);
 for i=1:nFiles
   fprintf('### Working on file: %s (%d/%d)...\n', ...
     [datapath dataset_file{i}], i, nFiles);
