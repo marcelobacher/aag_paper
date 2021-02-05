@@ -5,14 +5,15 @@ addpath(genpath('./afg_km'));
 addpath(genpath('./ewkm'));
 addpath(genpath('./enclus'));
 addpath(genpath('./iforest'));
-nRep = 20;
+nRep = 5;
 nRepVal = 10;
 alpha = 0.05;
 % flag to add noise (1st setting)
 add_noise = 0;
 noise_factors = [.01 .03 .05 .07 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0];
 % benchmarks
-benchmarks = {'aag'; 'fb'; 'enclus'; 'ewkm'; 'afg'; 'iforest'};
+% benchmarks = {'aag'; 'fb'; 'enclus'; 'ewkm'; 'afg'; 'iforest'};
+benchmarks = {'fb'};
 % datasets
 datapath = '../data/';
 resultspath = '../results/';
@@ -129,7 +130,7 @@ dataset_file = {...
 'sonar_odds.mat';...
 'diabetic_odds.mat';...
 };
-nFiles = length(dataset_file);
+nFiles = 5; %length(dataset_file);
 for i=1:nFiles
   fprintf('### Working on file: %s (%d/%d)...\n', ...
     [datapath dataset_file{i}], i, nFiles);
@@ -147,9 +148,18 @@ for i=1:nFiles
     performance = run_aag_paper(data, labels, benchmarks, alpha, ...
       add_noise, noise_factors, nRep, nRepVal);
     ymdxxx = clock;
-    targetfile = [resultspath sprintf('%d%d%d_results_%s', ...
-      ymdxxx(1), ymdxxx(2), ymdxxx(3), dataset_file{i})];
-    fprintf('### Recording file: %s...\n', targetfile);
+    if ymdxxx(2) < 10
+      month = ['0' num2str(ymdxxx(2))];
+    else
+      month = num2str(ymdxxx(2));
+    end
+    if ymdxxx(3) < 10
+      day = ['0' num2str(ymdxxx(3))];
+    else
+      day = num2str(ymdxxx(3));
+    end
+    targetfile = [resultspath sprintf('%d%s%s_results_%s', ...
+      ymdxxx(1), month, day, dataset_file{i})];    fprintf('### Recording file: %s...\n', targetfile);
     save(targetfile, 'performance');
   catch e
     disp(e)
