@@ -7,8 +7,8 @@ bin = cell(P,1);
 maxSymbols = 30;
 for i = 1:P
   singleVal = unique(xTrain(:,i));
-  if length(singleVal) >= maxSymbols
-    % % disc(i) = calcnbins(singleVal, 'fd', 1, maxSymbols);
+  if length(singleVal) > maxSymbols
+% %     disc(i) = calcnbins(singleVal, 'fd', 1, maxSymbols);
     disc(i) = maxSymbols;
     [xTrain_d(:,i), bin{i}] = discEqFreq2(xTrain(:,i), disc(i));
   else

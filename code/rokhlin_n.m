@@ -31,15 +31,25 @@ end
 P = size(X,2);
 d = 0;
 H = sum(abs(mvJointEntropy(X)));
+if P == 3
+  mi = zeros(P,2);
+end
 for i=1:P
   indices = 1:P;
   indices(i) = [];
 % %   a = mvJointEntropy([X(:,indices) X(:,i)]);
-  a = H - sum(abs(mvJointEntropy(X(:,indices))));
-  d = d + a;
+  a = mvJointEntropy(X(:,indices));
+  if P == 3
+    mi(i,:) = a(:)';
+  end
+  d = d + H - sum(abs(a));
 end
 if mod(P,2)>0
-  d = d + multivariate_mi(X);
+  if P > 3
+    d = d + multivariate_mi(X);
+  elseif P == 3
+    d = d + mi(1,1) + mi(2,1) + mvJointEntropy(X(:,3)) - sum(mi(:)) + H;
+  end
 end
 if (normalized) > 0 && (H > 0)
   d = d / H;
