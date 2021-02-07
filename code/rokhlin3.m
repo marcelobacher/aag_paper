@@ -24,39 +24,8 @@
 %
 function rd = rokhlin3(X, w)
 
-% check data dimensionality
-P = size(X,2);
-if P > 3
-  % we do until second order...sorry
-  disp('WARNING: Rokhlin Distance will be computed up to order 2!');
-end
-
 if nargin < 2
   w = 1;
 end
 
-if P > 2
-  % a <- [H(X3) H(X2|X3) H(X1|X2,X3)]
-  a = mvJointEntropy([X(:,3) X(:,2) X(:,1)]);
-  % b <- [H(X3) H(X1|X3) H(X2|X1,X3)]
-  b = mvJointEntropy([X(:,3) X(:,1) X(:,2)]);
-  % c <- [H(X1) H(X2|X1) H(X3|X2,X1)]
-  c = mvJointEntropy([X(:,1) X(:,2) X(:,3)]);
-  % d <- I(X1;X2;X3) = I(X1;X2) - I(X1;X2|X3)
-  d = mvMutualInformation(X(:,1), X(:,2)) - ...
-    condMutualInformation(X(:,1), X(:,2), X(:,3));  
-  % Rd = H(X1|X2,X3) + H(X2|X1,X3) + H(X3|X2,X1) + MI(X1 X2 X3)
-  rd = a(3) + b(3) + c(3) + w*d;
-  rd = rd / sum(abs(c));
-elseif P == 2
-  % we make it evident how to compute the Rokhlin distace
-  % a <- [H(X2) H(X1|X2)]
-  a = mvJointEntropy([X(:,2) X(:,1)]);
-  % b <- [H(X1) H(X2|X1)]
-  b = mvJointEntropy([X(:,1) X(:,2)]);
-  % Rd = H(X1|X2) + H(X2|X1)
-  rd = a(2) + b(2);
-  rd =  rd / sum(abs(a));
-else
-  error('ERROR! X is a vector ...');
-end
+rd = rokhlin_n(X, 1);

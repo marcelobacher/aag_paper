@@ -22,18 +22,26 @@
 % Marcelo Bacher, Dec. 2015
 % mgcherba@gmail.com
 %
-function d = rokhlin_n(X)
+function d = rokhlin_n(X, normalized)
 
+if nargin < 2
+  normalized = 0;
+end
 % check data dimensionality
 P = size(X,2);
 d = 0;
+H = sum(abs(mvJointEntropy(X)));
 for i=1:P
   indices = 1:P;
   indices(i) = [];
-  a = mvJointEntropy([X(:,indices) X(:,i)]);
-  d = d + a(end);
+% %   a = mvJointEntropy([X(:,indices) X(:,i)]);
+  a = H - sum(abs(mvJointEntropy(X(:,indices))));
+  d = d + a;
 end
 if mod(P,2)>0
   d = d + multivariate_mi(X);
+end
+if (normalized) > 0 && (H > 0)
+  d = d / H;
 end
 
