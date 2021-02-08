@@ -15,7 +15,7 @@ L_test = bsxfun(@minus, xTest, mData);
 nTrain = size(xTrain,1);
 nTest = size(xTest,1);
 % pre-process via PCA
-if size(xTrain,2)>3
+if size(xTrain,2)>10
   [~, B] = doPca(xTrain, p, 1, 1);
   % compute projection
   L = L*B;
