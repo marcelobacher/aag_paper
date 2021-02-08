@@ -5,6 +5,7 @@ addpath(genpath('./afg_km'));
 addpath(genpath('./ewkm'));
 addpath(genpath('./enclus'));
 addpath(genpath('./iforest'));
+% just setting only 2 repetitions, instead of 20 to speed up the submittion, change it back to 20
 nRep = 2;
 nRepVal = 10;
 alpha = 0.05;
@@ -129,7 +130,8 @@ dataset_file = {...
 'sonar_odds.mat';...
 'diabetic_odds.mat';...
 };
-nFiles = length(dataset_file);
+% just setting the first 10 datasets for submitting the code
+nFiles = 10; %length(dataset_file);
 for i=1:nFiles
   fprintf('### Working on file: %s (%d/%d)...\n', ...
     [datapath dataset_file{i}], i, nFiles);
