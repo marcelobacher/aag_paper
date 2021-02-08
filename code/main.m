@@ -5,7 +5,7 @@ addpath(genpath('./afg_km'));
 addpath(genpath('./ewkm'));
 addpath(genpath('./enclus'));
 addpath(genpath('./iforest'));
-nRep = 20;
+nRep = 2;
 nRepVal = 10;
 alpha = 0.05;
 % flag to add noise (1st setting)
