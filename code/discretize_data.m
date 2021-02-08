@@ -4,7 +4,7 @@ P = size(xTrain, 2);
 disc = zeros(P,1);
 xTrain_d = xTrain;
 bin = cell(P,1);
-maxSymbols = 30;
+maxSymbols = 50;
 for i = 1:P
   singleVal = unique(xTrain(:,i));
   if length(singleVal) > maxSymbols
