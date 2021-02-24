@@ -34,4 +34,4 @@ function [psi,d] = l_calc_psi(C, X)
 psi = sum(d);
 
 function [L, d] = l_calc_dist(C, X)
-[d,L] = max(abs(bsxfun(@minus, 2.0*real(X*C'), dot(C, C, 2).')), [], 2);
+[d,L] = max(bsxfun(@minus, 2.0*real(X*C'), dot(C, C, 2).'), [], 2);
