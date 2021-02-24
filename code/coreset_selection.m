@@ -1,10 +1,12 @@
 function [C, idx] = coreset_selection(X, p)
+indices = (1:size(X,1))';
 % sample uniformly the first centroid candidate
 sampled = randsample(size(X,1),1);
 C = X(sampled, :);
 idx = sampled;
 % remove selected candidate centroid from data
 X(sampled, :) = [];
+indices(sampled) = [];
 % compute cost of candiates in C
 [psi0, d] = l_calc_psi(C, X);
 px = p * d / psi0;
@@ -16,9 +18,11 @@ for i = 1:round(log(psi0))
   if ~isempty(j)
     % update list of sampled candidates
     C = [C; X(j,:)];
-    idx = [idx; j];
+% %     idx = [idx; j];
+    idx = [idx; indices(j)];
     % remove selected candidates from data
     X(j,:) = [];
+    indices(j) = [];
     [psi,d] = l_calc_psi(C, X);
     % it returns the prob. for each x not selected candidate.
     px = p * d / psi;
